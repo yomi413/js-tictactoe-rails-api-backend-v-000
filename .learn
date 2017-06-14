@@ -1,0 +1,12 @@
+tags:
+  - rails
+  - api
+  - persistence
+  - serialization
+languages:
+  - rails
+resources: 1
+project:
+  review_criteria:
+   - All tests pass
+   - Handles persistence
