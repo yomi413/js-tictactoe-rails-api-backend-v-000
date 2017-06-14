@@ -1,34 +1,62 @@
 require "rails_helper"
 
 RSpec.describe GamesController, :type => :controller do
-  describe "responds to" do
+  before(:each) do
+    Game.destroy_all
+  end
 
-    before(:each) do
-      Game.destroy_all
-    end
+  describe "#create" do
+    it "can create a new Game instance" do
+      post :create, {
+        :state => ["X", "", "", "", "", "", "", "", ""]
+      }
 
-    it "creates games" do
-      post :create, { :game => { :state => ["X", "", "", "", "", "", "", "", ""] } }
       expect(Game.count).to eq(1)
     end
+  end
 
-    it "updates games" do
-      Game.create(:state => ["X", "O", "", "", "", "", "", "", ""])
-      patch :update, { :id => 1, :game => { :state => ["X", "", "", "", "", "", "", "", ""] } }
-      expect(Game.first.state).to eq ["X", "", "", "", "", "", "", "", ""]
+  describe "#update" do
+    it "persists changes to a previously-saved game's state (as players make additional moves)" do
+      Game.create(:state => ["X", "", "", "", "", "", "", "", ""])
+
+      patch :update, {
+        :id => Game.last.id,
+        :state => ["X", "O", "", "", "", "", "", "", ""]
+      }
+
+      expect(Game.last.state).to eq ["X", "O", "", "", "", "", "", "", ""]
     end
+  end
 
-    it "should return a JSON object with the games" do
-      Game.create(:state => ["X", "O", "", "", "", "", "", "", ""])
+  describe "#index" do
+    it "returns a JSON:API-compliant, serialized object representing all of the saved games" do
+      Game.create(:state => ["X", "O",  "", "", "", "", "", "", ""])
       Game.create(:state => ["X", "O", "X", "", "", "", "", "", ""])
+
       get :index
-      expected = {
-        "games"=>
-          [{"id"=>1, "state"=>["X", "O", "", "", "", "", "", "", ""]}, 
-          {"id"=>2, "state"=>["X", "O", "X", "", "", "", "", "", ""]}
+      returned_json = response.body
+      parsed_json = JSON.parse(returned_json)
+
+      correctly_serialized_json = {
+        "data" => [
+          {
+            "id" => (Game.last.id - 1).to_s,
+            "type" => "games",
+            "attributes" => {
+              "state" => ["X", "O",  "", "", "", "", "", "", ""]
+            }
+          },
+          {
+            "id" => Game.last.id.to_s,
+            "type" => "games",
+            "attributes" => {
+              "state" => ["X", "O", "X", "", "", "", "", "", ""]
+            }
+          }
         ]
       }
-      expect(JSON.parse(response.body)).to eq expected
+
+      expect(parsed_json).to eq(correctly_serialized_json)
     end
   end
 end
