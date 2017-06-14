@@ -15,6 +15,28 @@ RSpec.describe GamesController, :type => :controller do
     end
   end
 
+  describe "#show" do
+    it "returns a JSON:API-compliant, serialized object representing the specified Game instance" do
+      Game.create(:state => ["", "", "", "", "", "O", "", "", "X"])
+
+      get :show, id: Game.last.id
+      returned_json = response.body
+      parsed_json = JSON.parse(returned_json)
+
+      correctly_serialized_json = {
+        "data" => {
+          "id" => Game.last.id.to_s,
+          "type" => "games",
+          "attributes" => {
+            "state" => ["", "", "", "", "", "O", "", "", "X"]
+          }
+        }
+      }
+
+      expect(parsed_json).to eq(correctly_serialized_json)
+    end
+  end
+
   describe "#update" do
     it "persists changes to a previously-saved game's state (as players make additional moves)" do
       Game.create(:state => ["X", "", "", "", "", "", "", "", ""])
