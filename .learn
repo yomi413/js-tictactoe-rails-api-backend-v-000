@@ -1,12 +1,9 @@
 tags:
-  - rails
-  - api
-  - persistence
+  - rails api
   - serialization
-languages:
+frameworks:
   - rails
-resources: 1
-project:
-  review_criteria:
-   - All tests pass
-   - Handles persistence
+languages:
+  - ruby
+orms:
+  - activerecord
