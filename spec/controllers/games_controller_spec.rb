@@ -38,6 +38,9 @@ RSpec.describe GamesController, :type => :controller do
           "attributes" => {
             "state" => ["", "", "", "", "", "O", "", "", "X"]
           }
+        },
+        "jsonapi" => {
+          "version" => "1.0"
         }
       }
 
@@ -83,7 +86,10 @@ RSpec.describe GamesController, :type => :controller do
               "state" => ["X", "O", "X", "", "", "", "", "", ""]
             }
           }
-        ]
+        ],
+        "jsonapi" => {
+          "version" => "1.0"
+        }
       }
 
       expect(parsed_json).to eq(correctly_serialized_json)
