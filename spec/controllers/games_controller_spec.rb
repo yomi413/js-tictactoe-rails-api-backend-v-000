@@ -13,6 +13,14 @@ RSpec.describe GamesController, :type => :controller do
 
       expect(Game.count).to eq(1)
     end
+
+    it "properly serializes the 'state' attribute as an array instead of as a string" do
+      post :create, {
+        :state => ["X", "", "", "", "", "", "", "", ""]
+      }
+
+      expect(Game.last.state).to eq ["X", "", "", "", "", "", "", "", ""]
+    end
   end
 
   describe "#show" do
