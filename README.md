@@ -1,75 +1,128 @@
-# jQuery Tic-Tac-Toe
+# jQuery Tic-Tac-Toe with a Rails API — Part 1
 
-## Note: This lab does not work on the Learn IDE (we are in the process of upgrading it!). You can skip it for now and come back to it when it's upgraded OR you can [switch to a local environment](http://help.learn.co/workflow-tips/local-environment/setting-up-a-local-environment): 
+This lab is the first half of a two-part challenge in which you're tasked with building a browser-based Tic-Tac-Toe game using jQuery and a Rails API.
 
-## Objective
+Once you're done with both labs, you should have a finished product that behaves like [this video](http://flatiron-videos.s3.amazonaws.com/Learn%20Curriculum%20Helpers/ttt.mov) (right-click and `Save Link As...` to download).
 
-Make a tic-tac-toe game that behaves like the following video.
+## Objectives
+- Explore the directory structure of a single-page application.
+- Set up routes and actions to serve JSON via a Rails API.
+- Use the ActiveModelSerializers (AMS) gem to serialize Ruby objects to and from JSON.
+- Create a custom serializer that overrides the default provided by AMS and complies with the JSON:API specification.
+- Learn about the `ActiveRecord::Base#serialize` method for serializing arrays, hashes, and other non-mappable objects.
 
-Right click on the link below and select "Save link as..." to see a video of how your game should behave.
+## Directory structure of a single-page application
+Since this may be the first single-page app (SPA) you've built, let's take a minute to check out the directory structure.
 
-[video](http://flatiron-videos.s3.amazonaws.com/Learn%20Curriculum%20Helpers/ttt.mov)
+Our application has only a single view, `app/views/home/index.html`, in which we've sketched out the visual components of our tic-tac-toe game. We'll talk more about the individual elements in the next lesson when we start wiring up all of the functionality with jQuery. For now, just marvel at the simplicity of our lone view, controller (`app/controllers/home_controller.rb`), and route (`root 'home#index'`).
 
-## HTML
+Even after we've finished building our fully-featured tic-tac-toe game, `home/index.html` will _still_ be the only page that gets loaded by the browser. Once loaded, users will be able to play tic-tac-toe games, save in-progress games, view a list of all saved games, and load any saved game state back onto the board to continue playing — all _without refreshing the page_. The magic of JavaScript!
 
-You may never have built a "single page app" before so check out the directory structure.  Here we're using a Rails app to serve up some HTML.  There's really only one view, the main root route.  Once rails loads that everything will be done using AJAX with rails serving as our API.
+Before we can dive into all that `function`-y goodness, we first need to set up the back end of our application.
 
-We'll be leveraging the asset pipeline to load all our JavaScript so check out the manifest.  The main HTML file is in `views/home/index.html` Our JS code needs to do two things.  We'll first need to create a simple game of Tic Tac Toe.  Once that's done we'll need to figure out how to let the user persist the state of their game and see old games.  Lastly the user should be able to click on an old game and resume playing that game.
+## Setting up our Rails API
 
-The grid is made by a table. Each square is in a table row, or `tr` and each square is a table data, or `td` (you could also call this a cell).
+### What time is it? `Game` time!
+Our tic-tac-toe domain model centers on a `Game` class. Every instance of `Game` will have a unique `id` as well as a `state` property, an array representing the current state of the board. If you plumb the depths of your memory, this may look a bit familiar from your first days learning Ruby:
+```ruby
+#  X | O | X
+# -----------
+#    | O | O
+# -----------
+#    |   | X
 
-Each `td` has two data attributes: x and y coordinates. The top left `td` had an x of 0 and a y of 0.
-
-```html
-<td data-x="0" data-y="0"></td>
+state = ["X", "O", "X", "", "O", "O", "", "", "X"]
 ```
 
-The middle `td` has an x of 1 and a y of 1.
+There's nothing for us to add to the existing `Game` class... _yet_... but there's plenty of other work to do! If you hop into the test suite, you'll see that we have some routes and controller actions to set up.
 
-```html
-<td data-x="1" data-y="1"></td>
+### Routes and controllers and JSON, oh my!
+Most of the work required to set up the `GamesController` will be a straightforward review of the preceding ActiveModelSerializers and `to_json` labs. You'll need to set up routes and actions for the following API endpoints:
+1. Create — `POST` — `/games`
+2. Show — `GET` — `/games/:id`
+3. Update — `PATCH` — `/games/:id`
+4. Index — `GET` — `/games`
+
+***HINT***: As you're working through the `GamesController` tests, you might happen upon some `MissingTemplate` errors. Remember that we're building an *API*, so we definitely don't need to add any templates for our `GamesController` actions. If you're having some trouble figuring it out, take a look back at previous labs, and, as always, _remember, remember the point of the `render`!_
+
+![V for Vendetta](https://user-images.githubusercontent.com/17556281/27201976-c7e3a00e-51ed-11e7-800b-e038f867ff01.gif)
+
+### ActiveModelSerializers
+To ensure that our Rails API plays nicely with the forthcoming JavaScript front-end, we're relying on our old friend ActiveModelSerializers to serialize `Game` objects into JSON and back.
+
+***NOTE***: We're using AMS v0.10.6, which introduced a _ton_ of breaking changes over version 0.9.x — check out [the documentation](https://github.com/rails-api/active_model_serializers/tree/v0.10.6) if you run into any trouble.
+
+Once your routes and `GamesController` actions are set up properly, you should be seeing RSpec errors like this:
+```
+expected: {
+  "data"=>{
+    "id"=>"1",
+    "type"=>"games",
+    "attributes"=>{
+      "state"=>["", "", "", "", "", "O", "", "", "X"]
+    }
+  },
+  "jsonapi"=>{
+    "version"=>"1.0"
+  }
+}
+
+got: {
+  "id"=>1,
+  "state"=>"[\"\", \"\", \"\", \"\", \"\", \"O\", \"\", \"\", \"X\"]",
+  "created_at"=>"2017-06-15T21:17:19.975Z",
+  "updated_at"=>"2017-06-15T21:17:19.975Z"
+}
 ```
 
-The lower right corner has an x of 2 and a y of 2.
+Your calls to `render json: <object>` (did you _remember_?) are being intercepted by ActiveModelSerializers, but the gem isn't formatting them correctly.
 
-```html
-<td data-x="2" data-y="2"></td>
+We're trying our best to be _Good Developers_™, which means we should adhere to [v1.0 of the JSON:API specification](http://jsonapi.org/format/1.0/) when serializing objects. Unfortunately, AMS v0.10.6 defaults to its own serialization strategy, so we need to do a bit of manual configuration.
+
+#### AMS configuration
+Create a new Ruby file in the `config/initializers/` directory. You can name the file whatever you want, but something like `active_model_serializers.rb` or `ams.rb` would make the most sense. Inside that file, paste the following code:
+```ruby
+# config/initializers/active_model_serializers.rb
+
+ActiveModelSerializers.config.tap do |c|
+  c.adapter = :json_api
+  c.jsonapi_include_toplevel_object = true
+  c.jsonapi_version = "1.0"
+end
 ```
 
-## JavaScript TTT
+This tells AMS to use the `:json_api` serialization adapter, to include a top-level object, and to adhere to v1.0 of the JSON:API specification. For some reason, AMS's default `:json_api` configuration does not include a top-level object, despite the JSON:API specification's insistence on a top-level object called `"data"`.
 
-  For the actual TTT functionality, we've given you a lot of structure and the tests force you down a pretty specific path as far as what functions you should define and what they should do.
+***Top Tip***: If you want to learn more about the various configuration options for ActiveModelSerializers, head on over to [the documentation](https://github.com/rails-api/active_model_serializers/blob/v0.10.6/docs/general/configuration_options.md)!
 
-* `attachListeners()`
-  * You must have a function called `attachListeners()` which the tests call to attach the click handlers to the page after the DOM has been loaded
-  * When a client clicks on a cell, the function `doTurn()` should be called and passed a parameter of the event
-* `doTurn()`
-  * Increment the variable `turn` by one
-  * Should call on the function `updateState()` and pass it the event
-  * Should call on `checkWinner()`
-* `player()`
-  * If the turn number is even, this function should return the string "X", else it should return the string "O"
-* `updateState()`
-  * This method should call on `player()` and add the return value of this function to the clicked cell on the table
-* `checkWinner()`
-  * This function should evaluate the board to see if anyone has won
-  * If there is a winner, this function should make one of two strings: "Player X Won!" or "Player O Won!". It should then pass this string to `message()`.
-* `message()`
-  * This function should accept a string and add the string to the `div` with an id of "message" 
+At this point, we're getting close to a fully functional, JSON:API-compliant serializer. However, there are two final pieces we have to set up.
 
-## Persistence
+#### `GameSerializer`
+AMS defaults to serializing _every_ attribute on a model, but for this project we don't care when a `Game` instance was created or updated. To control which attributes get serialized, we're going to create a custom serializer that inherits from the base `ActiveModel::Serializer` class.
 
-Because this is the final project in the JavaScript section, for the persistence functionality we've intentionally left the implementation vague.  The tests are integration tests which actually simulate a user clicking around in the browser rather than us telling you exactly what functions to define and what they should do.  In theory it wouldn't matter what backend framework and language you used to implement the functionality.  In practice, there are some rspec tests that make sure your server responds in a sensible way.  The only thing the tests require is that the server responds to a few routes:
-* GET "/games"
-* POST "/games/:id"
-* PATCH "/games/:id"
+When we call on AMS to serialize an object (or collection of objects), AMS will first look in the `app/serializers/` directory (if one exists) to see if a user-defined serializer matches the object(s) to be serialized. Let's use the AMS generator that we learned about a few labs ago to create a new `GameSerializer`...
+```bash
+rails g serializer Game state
+```
+...which should result in the following code in `app/serializers/game_serializer.rb`:
+```ruby
+class GameSerializer < ActiveModel::Serializer
+  attributes :id, :state
+end
+```
 
-**Note** On the JavaScript side the actual tests will mock out the responses so your backend should send the responses the front end tests are simulating.
+#### Serializing non-mappable objects
+Now, the `created_at` and `updated_at` attributes are excluded from our JSON output, but we're still seeing errors concerning the `state` attribute. If you look closely, you'll notice that it's currently being serialized as a string, `"[\"X\", \"O\", \"X\", \"\", \"\", \"\", \"\", \"\", \"\"]"`, instead of as an array, `["X", "O", "X", "", "", "", "", "", ""]`.
 
-Running `learn` will only run the Jasmine tests. If you want to run the Rspec tests, make sure you run `rspec` separately. If you seem to be having issues running the Rspec tests, run `spring stop` followed by `rspec`.
+This is actually an issue with Active Record. We're currently trying to store the `state` attribute, an array, in a `TEXT`-typed database column. In order to properly store arrays, hashes, and other non-mappable objects in a `TEXT` column, we need to call [the `.serialize` class method provided by `ActiveRecord::Base`](http://api.rubyonrails.org/classes/ActiveRecord/Base.html):
+```ruby
+class Game < ActiveRecord::Base
+  serialize :state, Array
+end
+```
 
-## Resources
+And, with that, you've set up a JSON:API-compliant serialization scheme. Better still, all the tests should be passing!
 
-* [jQuery data()](https://api.jquery.com/jquery.data/)
+Congrats! Now get ready for the sequel...
 
-<p class='util--hide'>View <a href='https://learn.co/lessons/js-tictactoe-rails-api'>jQuery Tic Tac Toe</a> on Learn.co and start learning to code for free.</p>
+<p class='util--hide'>View <a href='https://learn.co/lessons/js-tictactoe-rails-api-backend'>jQuery Tic-Tac-Toe with a Rails API — Part 1</a> on Learn.co and start learning to code for free.</p>
