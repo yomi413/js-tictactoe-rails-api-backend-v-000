@@ -25,15 +25,15 @@ RSpec.describe GamesController, :type => :controller do
 
   describe "#show" do
     it "returns a JSON:API-compliant, serialized object representing the specified Game instance" do
-      Game.create(:state => ["", "", "", "", "", "O", "", "", "X"])
+      game = Game.create(:state => ["", "", "", "", "", "O", "", "", "X"])
 
-      get :show, id: Game.last.id
+      get :show, id: game.id
       returned_json = response.body
       parsed_json = JSON.parse(returned_json)
 
       correctly_serialized_json = {
         "data" => {
-          "id" => Game.last.id.to_s,
+          "id" => game.id.to_s,
           "type" => "games",
           "attributes" => {
             "state" => ["", "", "", "", "", "O", "", "", "X"]
@@ -50,21 +50,21 @@ RSpec.describe GamesController, :type => :controller do
 
   describe "#update" do
     it "persists changes to a previously-saved game's state (as players make additional moves)" do
-      Game.create(:state => ["X", "", "", "", "", "", "", "", ""])
+      game = Game.create(:state => ["X", "", "", "", "", "", "", "", ""])
 
       patch :update, {
-        :id => Game.last.id,
+        :id => game.id,
         :state => ["X", "O", "", "", "", "", "", "", ""]
       }
 
-      expect(Game.last.state).to eq ["X", "O", "", "", "", "", "", "", ""]
+      expect(Game.find(game.id).state).to eq ["X", "O", "", "", "", "", "", "", ""]
     end
   end
 
   describe "#index" do
     it "returns a JSON:API-compliant, serialized object representing all of the saved games" do
-      Game.create(:state => ["X", "O",  "", "", "", "", "", "", ""])
-      Game.create(:state => ["X", "O", "X", "", "", "", "", "", ""])
+      game1 = Game.create(:state => ["X", "O",  "", "", "", "", "", "", ""])
+      game2 = Game.create(:state => ["X", "O", "X", "", "", "", "", "", ""])
 
       get :index
       returned_json = response.body
@@ -73,14 +73,14 @@ RSpec.describe GamesController, :type => :controller do
       correctly_serialized_json = {
         "data" => [
           {
-            "id" => (Game.last.id - 1).to_s,
+            "id" => game1.id.to_s,
             "type" => "games",
             "attributes" => {
               "state" => ["X", "O",  "", "", "", "", "", "", ""]
             }
           },
           {
-            "id" => Game.last.id.to_s,
+            "id" => game2.id.to_s,
             "type" => "games",
             "attributes" => {
               "state" => ["X", "O", "X", "", "", "", "", "", ""]
