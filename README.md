@@ -53,26 +53,26 @@ To ensure that our Rails API plays nicely with the forthcoming JavaScript front-
 ***NOTE***: We're using AMS v0.10.6, which introduced a _ton_ of breaking changes over version 0.9.x — check out [the documentation](https://github.com/rails-api/active_model_serializers/tree/v0.10.6) if you run into any trouble.
 
 Once your routes and `GamesController` actions are set up properly, you should be seeing RSpec errors like this:
-```
-expected: {
-  "data"=>{
-    "id"=>"1",
-    "type"=>"games",
-    "attributes"=>{
-      "state"=>["", "", "", "", "", "O", "", "", "X"]
-    }
-  },
-  "jsonapi"=>{
-    "version"=>"1.0"
-  }
-}
+```ruby
+2) GamesController#show returns a JSON:API-compliant, serialized object representing the specified Game instance
+  Failure/Error: expect(parsed_json).to eq(correctly_serialized_json)
 
-got: {
-  "id"=>1,
-  "state"=>"[\"\", \"\", \"\", \"\", \"\", \"O\", \"\", \"\", \"X\"]",
-  "created_at"=>"2017-06-15T21:17:19.975Z",
-  "updated_at"=>"2017-06-15T21:17:19.975Z"
-}
+    expected: {"data"=>{"id"=>"1", "type"=>"games", "attributes"=>{"state"=>["", "", "", "", "", "O", "", "", "X"]}}, "jsonapi"=>{"version"=>"1.0"}}
+
+    got: {"id"=>1, "state"=>"[\"\", \"\", \"\", \"\", \"\", \"O\", \"\", \"\", \"X\"]", "created_at"=>"2017-06-29T14:27:26.521Z", "updated_at"=>"2017-06-29T14:27:26.521Z"}
+
+    (compared using ==)
+
+    Diff:
+    @@ -1,3 +1,5 @@
+    -"data" => {"id"=>"1", "type"=>"games", "attributes"=>{"state"=>["", "", "", "", "", "O", "", "", "X"]}},
+    -"jsonapi" => {"version"=>"1.0"},
+    +"created_at" => "2017-06-29T14:27:26.521Z",
+    +"id" => 1,
+    +"state" => "[\"\", \"\", \"\", \"\", \"\", \"O\", \"\", \"\", \"X\"]",
+    +"updated_at" => "2017-06-29T14:27:26.521Z",
+
+    # ./spec/controllers/games_controller_spec.rb:47:in `block (3 levels) in <top (required)>'
 ```
 
 Your calls to `render json: <object>` (did you _remember_?) are being intercepted by ActiveModelSerializers, but the gem isn't formatting them correctly.
